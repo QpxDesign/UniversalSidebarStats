@@ -4,19 +4,14 @@ import GPUtil
 import shutil
 from hurry.filesize import size
 from datetime import datetime 
-import subprocess
-
-def get_ssid():
-    try:
-        raw_wifi = subprocess.check_output([ 'WLAN', 'show', 'interfaces'])
-        data_strings = raw_wifi.decode('utf-8').split()
-        index = data_strings.index('Profile')
-        return data_strings[index + 2]
-    except:
-        return ""
-
+import time
+import socket
 
 app = Flask(__name__)
+
+def get_ssid():
+    addrs = psutil.net_if_addrs()
+    return addrs.keys()
 
 
 #disk_readage = size(psutil.disk_io_counters().read_bytes / psutil.disk_io_counters().read_time)
@@ -25,6 +20,8 @@ cache["prev_read_bytes_disk"] = -1
 cache["prev_write_bytes_disk"] = -1
 cache["prev_bytes_recv_network"] = -1
 cache["prev_bytes_sent_network"] = -1
+
+cache["init_time"] = time.time()
 
 @app.route("/")
 def index():
@@ -47,6 +44,8 @@ def index():
         cache["prev_bytes_sent_network"] = psutil.net_io_counters().bytes_sent
     bytes_sent_network = psutil.net_io_counters().bytes_sent-cache["prev_bytes_sent_network"]
     cache["prev_bytes_sent_network"] = psutil.net_io_counters().bytes_sent
+
+    ts = time.time() - cache["init_time"]
     return f"""
     <html>
     <style>
@@ -77,12 +76,12 @@ def index():
         <div style="width:90%; border: 2px solid white;"> 
             <div id='a' style="width:{(shutil.disk_usage("/").used/shutil.disk_usage("/").total)*100}%;background:white;height:20px;position:relative"></div>
         </div>
-        <h1>Read: {size(bytes_read_disk)}</h1>
-        <h1>Write: {size(bytes_write_disk)}</h1>
+        <h1>Read: {size((bytes_read_disk)/ts)}/s</h1>
+        <h1>Write: {size((bytes_write_disk)/ts)}/s</h1>
     <hr>
-        <h1>🌐 Network: {get_ssid()}
-         <h1>Send: {size(bytes_sent_network)}</h1>
-        <h1>Recieve: {size(bytes_recv_network)}</h1>
+        <h1>🌐 Network: {socket.gethostbyname(socket.gethostname())}
+         <h1>Send: {size((bytes_sent_network)/ts)}/s</h1>
+        <h1>Recieve: {size((bytes_recv_network)/ts)}/s</h1>
     </html>"""
 
 if __name__ == "__main__":
