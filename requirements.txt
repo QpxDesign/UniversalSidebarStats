@@ -1,5 +1,5 @@
 flask
 psutil 
-PUtil 
+GPUtil 
 shutil
 hurry.filesize
