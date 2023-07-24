@@ -21,10 +21,13 @@ cache["prev_write_bytes_disk"] = -1
 cache["prev_bytes_recv_network"] = -1
 cache["prev_bytes_sent_network"] = -1
 
-cache["init_time"] = time.time()
+cache["init_time"] = -1
 
 @app.route("/")
 def index():
+    if cache["init_time"] ==  -1:
+        cache["init_time"] = psutil.disk_io_counters().read_time 
+    ts = psutil.disk_io_counters().read_time - cache["init_time"]
     if cache["prev_read_bytes_disk"] == -1:
         cache["prev_read_bytes_disk"] = psutil.disk_io_counters().read_bytes
     bytes_read_disk = psutil.disk_io_counters().read_bytes-cache["prev_read_bytes_disk"]
@@ -44,8 +47,8 @@ def index():
         cache["prev_bytes_sent_network"] = psutil.net_io_counters().bytes_sent
     bytes_sent_network = psutil.net_io_counters().bytes_sent-cache["prev_bytes_sent_network"]
     cache["prev_bytes_sent_network"] = psutil.net_io_counters().bytes_sent
-
-    ts = time.time() - cache["init_time"]
+    if ts == 0:
+        ts = 1
     return f"""
     <html>
     <style>
